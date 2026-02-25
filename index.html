@@ -1190,7 +1190,6 @@
 
         // Chart instances
         let categoryChart = null;
-        let dailyTrendChart = null;
 
         // Initialize the app
         function init() {
@@ -1774,60 +1773,6 @@
             if (categoryChart) {
                 categoryChart.destroy();
             }
-            if (dailyTrendChart) {
-                dailyTrendChart.destroy();
-            }
-            
-            // Daily sales trend chart
-            const trendCtx = document.getElementById('dailyTrendChart').getContext('2d');
-            const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            const startDate = new Date(currentWeekStart);
-            const dailyRevenues = [];
-            const dailyLabels = [];
-            
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(startDate);
-                date.setDate(startDate.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                const dayData = weekData.dailyData[dateStr] || { revenue: 0 };
-                dailyRevenues.push(dayData.revenue);
-                dailyLabels.push(daysOfWeek[date.getDay()]);
-            }
-            
-            dailyTrendChart = new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: dailyLabels,
-                    datasets: [{
-                        label: 'Daily Revenue',
-                        data: dailyRevenues,
-                        borderColor: 'rgba(42, 82, 152, 1)',
-                        backgroundColor: 'rgba(42, 82, 152, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(0);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
             
             // Category sales chart
             const categoryCtx = document.getElementById('categoryChart').getContext('2d');
