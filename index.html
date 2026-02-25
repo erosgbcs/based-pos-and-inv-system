@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS & Inventory Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- include Chart.js for graphs and datalabels plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
 
     <style>
         * {
@@ -829,6 +835,46 @@
                                 </table>
                             </div>
 
+                                <!-- new line chart card for revenue trend -->
+                                <div class="report-card">
+                                    <div class="report-card-title">
+                                        <i class="fas fa-chart-line"></i> Daily Revenue Trend
+                                    </div>
+                                    <div class="chart-container">
+                                        <canvas id="dailyLineChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- new pie chart card for category breakdown -->
+                                <div class="report-card">
+                                    <div class="report-card-title">
+                                        <i class="fas fa-chart-pie"></i> Category Breakdown
+                                    </div>
+                                    <div class="chart-container">
+                                        <canvas id="categoryPieChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- new sales history card -->
+                                <div class="report-card" style="margin-top: 25px;">
+                                    <div class="report-card-title">
+                                        <i class="fas fa-history"></i> Sales History
+                                    </div>
+                                    <table class="report-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Time</th>
+                                                <th>Buyer</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="salesHistoryTable">
+                                            <!-- Sales history entries will be added here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
                             <div class="report-card" style="margin-top: 25px;">
                                 <div class="report-card-title">
                                     <i class="fas fa-exclamation-triangle"></i> Inventory Insights
@@ -874,12 +920,12 @@
                 </div>
                 <div class="cart-total">
                     <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">₱0.00</span>
+                        <span>Buyer:</span>
+                        <input id="buyerName" type="text" placeholder="Buyer name" style="width:60%; padding:5px; border:1px solid #ddd; border-radius:4px;">
                     </div>
                     <div class="total-row">
-                        <span>Tax (10%):</span>
-                        <span id="tax">₱0.00</span>
+                        <span>Subtotal:</span>
+                        <span id="subtotal">₱0.00</span>
                     </div>
                     <div class="total-row total-amount">
                         <span>Total:</span>
@@ -896,6 +942,16 @@
     <div id="notification" class="notification"></div>
 
     <script>
+        // Firebase configuration
+        // TODO: replace with your Firebase project config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            // ...other fields as provided by Firebase
+        };
+        let db = null;
+
         // currency configuration
         const currencySymbol = '₱';
         function formatMoney(amount) {
@@ -943,6 +999,8 @@
 
         // Load products CSV from `data/products.csv` if available
         function loadProductsFromCSV() {
+            // only load from CSV if no products exist yet
+            if (products && products.length > 0) return Promise.resolve();
             return fetch('data/products.csv')
                 .then(resp => {
                     if (!resp.ok) throw new Error('no products csv');
@@ -1013,6 +1071,8 @@
                             stock: parseInt(r.stock, 10) || 0,
                             image: r.image || '📦'
                         }));
+                        // sync all to firestore
+                        products.forEach(syncProduct);
                         renderProducts();
                         renderInventoryTable();
                         updateStats();
@@ -1146,6 +1206,43 @@
         // Cart array
         let cart = [];
 
+        // Keep a history of every checkout with timestamp
+        let salesHistory = [];
+
+        // helper to load firestore collections
+        async function loadFirestoreData() {
+            if (!db) return;
+            try {
+                const prodSnap = await db.collection('products').get();
+                if (!prodSnap.empty) products = prodSnap.docs.map(d=>d.data());
+                const salesSnap = await db.collection('salesData').get();
+                salesData = {};
+                salesSnap.forEach(d=>{ salesData[d.id] = d.data(); });
+                const histSnap = await db.collection('salesHistory').orderBy('datetime').get();
+                salesHistory = histSnap.docs.map(d=>d.data());
+            } catch(e) {
+                console.warn('firestore read failed', e);
+            }
+        }
+
+        // helper to sync a product back to firestore
+        function syncProduct(product) {
+            if (!db) return;
+            db.collection('products').doc(String(product.id)).set(product).catch(console.error);
+        }
+
+        // helper to sync week data
+        function syncWeekData(weekStart, data) {
+            if (!db) return;
+            db.collection('salesData').doc(weekStart).set(data).catch(console.error);
+        }
+
+        // helper to add history entry
+        function addHistoryEntry(entry) {
+            if (!db) return;
+            db.collection('salesHistory').add(entry).catch(console.error);
+        }
+
         // Current week for reporting
         let currentWeekStart = "2023-10-23";
 
@@ -1153,7 +1250,8 @@
         const productsContainer = document.getElementById('productsContainer');
         const cartItems = document.getElementById('cartItems');
         const subtotalElement = document.getElementById('subtotal');
-        const taxElement = document.getElementById('tax');
+        // buyer name input
+        const buyerNameInput = document.getElementById('buyerName');
         const totalElement = document.getElementById('total');
         const checkoutBtn = document.getElementById('checkoutBtn');
         const notification = document.getElementById('notification');
@@ -1194,81 +1292,95 @@
         // let categoryChart = null;
 
         // Initialize the app
-        function init() {
-            // Attempt to load products from CSV file first (if present), then initialize UI
-            loadProductsFromCSV().then(() => {
-                renderProducts();
-                renderInventoryTable();
-                updateCartDisplay();
-                updateStats();
-                // Set default week start to today's Monday before rendering the weekly report
-                setDefaultWeekStart();
-                updateWeeklyReport();
-                
-                // Set up event listeners
-                checkoutBtn.addEventListener('click', checkout);
-                
-                // Tab switching
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        const tabId = tab.getAttribute('data-tab');
-                        switchTab(tabId);
-                        
-                        // If switching to weekly report, update it
-                        if (tabId === 'weekly-report') {
-                            updateWeeklyReport();
-                        }
-                    });
-                });
-                
-                // Weekly report event listeners
-                weekStartInput.addEventListener('change', () => {
-                    currentWeekStart = weekStartInput.value;
-                    updateWeeklyReport();
-                });
-                
-                categoryFilter.addEventListener('change', updateWeeklyReport);
-                
-                prevWeekBtn.addEventListener('click', goToPreviousWeek);
-                nextWeekBtn.addEventListener('click', goToNextWeek);
-                refreshReportBtn.addEventListener('click', updateWeeklyReport);
-                exportReportBtn.addEventListener('click', exportReport);
-                
-                // Search inputs
-                const productSearchInput = document.getElementById('productSearch');
-                const inventorySearchInput = document.getElementById('inventorySearch');
-                if (productSearchInput) {
-                    productSearchInput.addEventListener('input', (e) => {
-                        productSearchTerm = e.target.value || '';
-                        renderProducts();
-                    });
-                }
-                if (inventorySearchInput) {
-                    inventorySearchInput.addEventListener('input', (e) => {
-                        inventorySearchTerm = e.target.value || '';
-                        renderInventoryTable();
-                    });
-                }
+        async function init() {
+            // register datalabels plugin with Chart.js
+            if (window.Chart && window.ChartDataLabels) {
+                Chart.register(ChartDataLabels);
+            }
+            // initialize Firebase
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+            } catch (e) {
+                console.warn('Firebase init failed', e);
+            }
 
-                // Add product button
-                const addProductBtn = document.getElementById('addProductBtn');
-                if (addProductBtn) {
-                    addProductBtn.addEventListener('click', addInventoryItem);
-                }
+            // load data from Firestore (if available) then fall back to CSV/sample
+            await loadFirestoreData();
+            await loadProductsFromCSV();
 
-                // Export/Import CSV handlers
-                const exportInventoryBtn = document.getElementById('exportInventoryBtn');
-                if (exportInventoryBtn) {
-                    exportInventoryBtn.addEventListener('click', exportProductsCSV);
-                }
-                const importInventoryFile = document.getElementById('importInventoryFile');
-                if (importInventoryFile) {
-                    importInventoryFile.addEventListener('change', (e) => {
-                        const file = e.target.files && e.target.files[0];
-                        if (file) importProductsFromFile(file);
-                    });
-                }
+            // render and set up UI
+            renderProducts();
+            renderInventoryTable();
+            updateCartDisplay();
+            updateStats();
+            // Set default week start to today's Monday before rendering the weekly report
+            setDefaultWeekStart();
+            updateWeeklyReport();
+            
+            // Set up event listeners
+            checkoutBtn.addEventListener('click', checkout);
+            
+            // Tab switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    switchTab(tabId);
+                    
+                    // If switching to weekly report, update it
+                    if (tabId === 'weekly-report') {
+                        updateWeeklyReport();
+                    }
+                });
             });
+            
+            // Weekly report event listeners
+            weekStartInput.addEventListener('change', () => {
+                currentWeekStart = weekStartInput.value;
+                updateWeeklyReport();
+            });
+            
+            categoryFilter.addEventListener('change', updateWeeklyReport);
+            
+            prevWeekBtn.addEventListener('click', goToPreviousWeek);
+            nextWeekBtn.addEventListener('click', goToNextWeek);
+            refreshReportBtn.addEventListener('click', updateWeeklyReport);
+            exportReportBtn.addEventListener('click', exportReport);
+            
+            // Search inputs
+            const productSearchInput = document.getElementById('productSearch');
+            const inventorySearchInput = document.getElementById('inventorySearch');
+            if (productSearchInput) {
+                productSearchInput.addEventListener('input', (e) => {
+                    productSearchTerm = e.target.value || '';
+                    renderProducts();
+                });
+            }
+            if (inventorySearchInput) {
+                inventorySearchInput.addEventListener('input', (e) => {
+                    inventorySearchTerm = e.target.value || '';
+                    renderInventoryTable();
+                });
+            }
+
+            // Add product button
+            const addProductBtn = document.getElementById('addProductBtn');
+            if (addProductBtn) {
+                addProductBtn.addEventListener('click', addInventoryItem);
+            }
+
+            // Export/Import CSV handlers
+            const exportInventoryBtn = document.getElementById('exportInventoryBtn');
+            if (exportInventoryBtn) {
+                exportInventoryBtn.addEventListener('click', exportProductsCSV);
+            }
+            const importInventoryFile = document.getElementById('importInventoryFile');
+            if (importInventoryFile) {
+                importInventoryFile.addEventListener('change', (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (file) importProductsFromFile(file);
+                });
+            }
         }
 
         // Set default week start to the most recent Monday
@@ -1459,6 +1571,7 @@
 
         // Update weekly report
         function updateWeeklyReport() {
+            // After computing weekData we will also refresh the charts and history
             // Preserve current scroll position to avoid auto-scrolling
             const prevScroll = { x: window.scrollX || 0, y: window.scrollY || 0 };
             updateWeekRangeDisplay();
@@ -1537,6 +1650,10 @@
             updateInventoryInsights();
             
             // Update charts
+            updateCharts(weekData);
+
+            // Update sales history table
+            updateSalesHistory();
 
             // Restore previous scroll position to prevent auto-scroll
             window.scrollTo(prevScroll.x, prevScroll.y);
@@ -1754,6 +1871,8 @@
             };
 
             products.push(newProduct);
+            // persist to firestore
+            syncProduct(newProduct);
             showNotification(`${name} added to inventory`, 'success');
 
             // Clear inputs
@@ -1768,10 +1887,123 @@
             updateStats();
         }
 
-        // Chart functionality removed
-        // function updateCharts(weekData) {
-        //     // charts were removed
-        // }
+        // chart instance references
+        let categoryChart = null;
+        let lineChart = null;
+
+        // Update charts (pie chart for category breakdown)
+        function updateCharts(weekData) {
+            // pie chart with category breakdown and percentage labels
+            const ctx = document.getElementById('categoryPieChart');
+            if (ctx) {
+                const labels = Object.keys(weekData.categoryData);
+                const dataValues = labels.map(l => weekData.categoryData[l]);
+
+                if (categoryChart) categoryChart.destroy();
+
+                categoryChart = new Chart(ctx.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: ['#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            datalabels: {
+                                formatter: (value, ctx) => {
+                                    const sum = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                                    return sum ? (value/sum*100).toFixed(1) + '%' : '';
+                                },
+                                color: '#fff'
+                            },
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+
+            // line chart for daily revenue trend
+            const lineCtx = document.getElementById('dailyLineChart');
+            if (lineCtx) {
+                const days = [];
+                const revenues = [];
+                const start = new Date(currentWeekStart);
+                for (let i=0;i<7;i++){
+                    const d = new Date(start);
+                    d.setDate(start.getDate()+i);
+                    const key = d.toISOString().split('T')[0];
+                    days.push(d.toLocaleDateString(undefined,{weekday:'short'}));
+                    revenues.push(weekData.dailyData[key] ? weekData.dailyData[key].revenue : 0);
+                }
+
+                if (lineChart) lineChart.destroy();
+
+                lineChart = new Chart(lineCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: days,
+                        datasets: [{
+                            label: 'Revenue',
+                            data: revenues,
+                            borderColor: '#4e73df',
+                            backgroundColor: 'rgba(78,115,223,0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            datalabels: {
+                                formatter: (value) => {
+                                    const total = revenues.reduce((a,b)=>a+b,0);
+                                    return total ? (value/total*100).toFixed(1)+'%' : '';
+                                },
+                                color: '#555'
+                            },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Update sales history table (filtered to current week)
+        function updateSalesHistory() {
+            const tbody = document.getElementById('salesHistoryTable');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            // determine week range
+            const start = new Date(currentWeekStart);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 6);
+
+            salesHistory.forEach(record => {
+                const recDate = new Date(record.datetime);
+                if (recDate < start || recDate > end) return; // skip outside week
+
+                const dateStr = recDate.toLocaleDateString();
+                const timeStr = recDate.toLocaleTimeString();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${dateStr}</td>
+                    <td>${timeStr}</td>
+                    <td>${record.buyer || ''}</td>
+                    <td>${formatMoney(record.total)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
 
         // Add product to cart
         function addToCart(productId) {
@@ -1825,7 +2057,6 @@
                 `;
                 
                 subtotalElement.textContent = formatMoney(0);
-                taxElement.textContent = formatMoney(0);
                 totalElement.textContent = formatMoney(0);
                 
                 return;
@@ -1859,12 +2090,10 @@
             
             cartItems.innerHTML = cartHTML;
             
-            // Calculate totals
-            const tax = subtotal * 0.10;
-            const total = subtotal + tax;
+            // Calculate totals (tax removed)
+            const total = subtotal;
             
             subtotalElement.textContent = formatMoney(subtotal);
-            taxElement.textContent = formatMoney(tax);
             totalElement.textContent = formatMoney(total);
         }
 
@@ -1910,6 +2139,8 @@
                     showNotification(`${product.name} is already out of stock`, 'error');
                 }
             }
+            // sync change
+            syncProduct(product);
             
             // Update displays
             renderProducts();
@@ -1927,6 +2158,12 @@
         function checkout() {
             if (cart.length === 0) {
                 showNotification('Your cart is empty', 'error');
+                return;
+            }
+
+            const buyer = buyerNameInput ? buyerNameInput.value.trim() : '';
+            if (!buyer) {
+                showNotification('Please enter buyer name', 'error');
                 return;
             }
             
@@ -1949,19 +2186,32 @@
             cart.forEach(item => {
                 const product = products.find(p => p.id === item.id);
                 product.stock -= item.quantity;
+                syncProduct(product);
             });
             
             // Calculate total sale
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const tax = subtotal * 0.10;
-            const total = subtotal + tax;
+            const total = subtotal; // tax removed
             
             // Update today's sales
             const todaySales = parseFloat(todaySalesElement.textContent);
             todaySalesElement.textContent = (todaySales + total).toFixed(2);
-            
+
             // Update weekly sales data for current week
             const today = new Date();
+
+            // record this transaction in history (include buyer)
+            const historyEntry = {
+                datetime: today.toISOString(),
+                total: total,
+                buyer: buyer,
+                items: cart.map(i => ({ id: i.id, name: i.name, qty: i.quantity, price: i.price }))
+            };
+            salesHistory.push(historyEntry);
+            addHistoryEntry(historyEntry);
+
+            // clear buyer after checkout
+            if (buyerNameInput) buyerNameInput.value = '';
             const todayStr = today.toISOString().split('T')[0];
             const weekData = salesData[currentWeekStart] || generateEmptyWeekData();
             
@@ -1976,6 +2226,10 @@
             weekData.total += total;
             weekData.transactions += 1;
             weekData.itemsSold += cart.reduce((sum, item) => sum + item.quantity, 0);
+
+            // persist updated week data
+            salesData[currentWeekStart] = weekData;
+            syncWeekData(currentWeekStart, weekData);
             
             // Update category data
             cart.forEach(item => {
@@ -1988,6 +2242,7 @@
             
             // Save updated week data
             salesData[currentWeekStart] = weekData;
+            syncWeekData(currentWeekStart, weekData);
             
             // Show success message
             showNotification(`Checkout successful! Total: ${formatMoney(total)}`, 'success');
@@ -2022,6 +2277,8 @@
             // Export comprehensive weekly report as CSV
             const weekData = salesData[currentWeekStart] || generateEmptyWeekData();
             const startDate = new Date(currentWeekStart);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6);
             const rows = [];
             
             // Header
@@ -2071,6 +2328,19 @@
                     rows.push([`"${product.name}"`, product.sold, formatMoney(product.revenue)].join(','));
                 });
             }
+
+            // include sales history for the current week
+            rows.push([''].join(','));
+            rows.push(['Sales History'].join(','));
+            rows.push(['Date','Time','Buyer','Total'].join(','));
+            salesHistory.forEach(record => {
+                const recDate = new Date(record.datetime);
+                if (recDate >= startDate && recDate <= endDate) {
+                    const dateOnly = recDate.toISOString().split('T')[0];
+                    const timeOnly = recDate.toTimeString().split(' ')[0];
+                    rows.push([dateOnly, timeOnly, record.buyer || '', formatMoney(record.total)].join(','));
+                }
+            });
             
             const csv = rows.join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
