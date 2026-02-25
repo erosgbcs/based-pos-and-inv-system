@@ -749,7 +749,12 @@
                             </div>
 
                             <div class="report-grid">
-                                <!-- Weekly Sales Trend card removed -->
+                                <div class="report-card">
+                                    <div class="report-card-title">
+                                        <i class="fas fa-chart-line"></i> Daily Sales Trend
+                                    </div>
+                                    <canvas id="dailyTrendChart" class="chart-container"></canvas>
+                                </div>
 
                                 <div class="report-card">
                                     <div class="report-card-title">
@@ -770,6 +775,10 @@
                                     <div>
                                         <span>Average Daily Sales: </span>
                                         <span id="avgDailySales">$263.25</span>
+                                    </div>
+                                    <div>
+                                        <span>Estimated Profit Margin: </span>
+                                        <span id="profitMargin">30%</span>
                                     </div>
                                     <div>
                                         <span>Best Day: </span>
@@ -1163,6 +1172,7 @@
         const weeklyRevenueTotalElement = document.getElementById('weeklyRevenueTotal');
         const revenueChangeElement = document.getElementById('revenueChange');
         const avgDailySalesElement = document.getElementById('avgDailySales');
+        const profitMarginElement = document.getElementById('profitMargin');
         const bestDayElement = document.getElementById('bestDay');
         const totalTransactionsElement = document.getElementById('totalTransactions');
         const itemsSoldElement = document.getElementById('itemsSold');
@@ -1175,6 +1185,7 @@
 
         // Chart instances
         let categoryChart = null;
+        let dailyTrendChart = null;
 
         // Initialize the app
         function init() {
@@ -1468,6 +1479,10 @@
             const avgDaily = weekData.total / 7;
             avgDailySalesElement.textContent = `$${avgDaily.toFixed(2)}`;
             
+            // Calculate estimated profit margin (assuming 30% margin)
+            const estimatedProfit = weekData.total * 0.3;
+            profitMarginElement.textContent = `$${estimatedProfit.toFixed(2)} (30%)`;
+            
             // Find best day
             let bestDay = "";
             let bestRevenue = 0;
@@ -1709,8 +1724,60 @@
             if (categoryChart) {
                 categoryChart.destroy();
             }
+            if (dailyTrendChart) {
+                dailyTrendChart.destroy();
+            }
             
-            // Sales trend graph removed — only render category chart below
+            // Daily sales trend chart
+            const trendCtx = document.getElementById('dailyTrendChart').getContext('2d');
+            const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const startDate = new Date(currentWeekStart);
+            const dailyRevenues = [];
+            const dailyLabels = [];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                const dayData = weekData.dailyData[dateStr] || { revenue: 0 };
+                dailyRevenues.push(dayData.revenue);
+                dailyLabels.push(daysOfWeek[date.getDay()]);
+            }
+            
+            dailyTrendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyLabels,
+                    datasets: [{
+                        label: 'Daily Revenue',
+                        data: dailyRevenues,
+                        borderColor: 'rgba(42, 82, 152, 1)',
+                        backgroundColor: 'rgba(42, 82, 152, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
             
             // Category sales chart
             const categoryCtx = document.getElementById('categoryChart').getContext('2d');
@@ -1994,11 +2061,29 @@
 
         // Export report function
         function exportReport() {
-            // Export current week's daily sales as CSV
+            // Export comprehensive weekly report as CSV
             const weekData = salesData[currentWeekStart] || generateEmptyWeekData();
             const startDate = new Date(currentWeekStart);
             const rows = [];
-            rows.push(['Day','Date','Transactions','ItemsSold','Revenue','AvgTransaction'].join(','));
+            
+            // Header
+            rows.push(['Weekly Sales Report'].join(','));
+            rows.push(['Week Starting', currentWeekStart].join(','));
+            rows.push(['Generated', new Date().toISOString().split('T')[0]].join(','));
+            rows.push([''].join(','));
+            
+            // Summary metrics
+            rows.push(['Summary Metrics'].join(','));
+            rows.push(['Total Revenue', `$${weekData.total.toFixed(2)}`].join(','));
+            rows.push(['Total Transactions', weekData.transactions].join(','));
+            rows.push(['Total Items Sold', weekData.itemsSold].join(','));
+            rows.push(['Average Transaction', `$${(weekData.transactions > 0 ? weekData.total / weekData.transactions : 0).toFixed(2)}`].join(','));
+            rows.push(['Average Daily Sales', `$${(weekData.total / 7).toFixed(2)}`].join(','));
+            rows.push([''].join(','));
+            
+            // Daily breakdown
+            rows.push(['Daily Sales Breakdown'].join(','));
+            rows.push(['Day','Date','Transactions','Items Sold','Revenue','Avg Transaction'].join(','));
             for (let i = 0; i < 7; i++) {
                 const date = new Date(startDate);
                 date.setDate(startDate.getDate() + i);
@@ -2006,12 +2091,29 @@
                 const dayName = date.toLocaleDateString(undefined, { weekday: 'long' });
                 const dayData = weekData.dailyData[dateStr] || { revenue: 0, transactions: 0, items: 0 };
                 const avgTx = dayData.transactions > 0 ? (dayData.revenue / dayData.transactions) : 0;
-                rows.push([`"${dayName}"`, dateStr, dayData.transactions, dayData.items, dayData.revenue.toFixed(2), avgTx.toFixed(2)].join(','));
+                rows.push([`"${dayName}"`, dateStr, dayData.transactions, dayData.items, `$${dayData.revenue.toFixed(2)}`, `$${avgTx.toFixed(2)}`].join(','));
             }
-            // Add summary row
-            const totalAvgTx = (weekData.transactions && weekData.transactions > 0) ? (weekData.total / weekData.transactions) : 0;
-            rows.push(['Total','', weekData.transactions, weekData.itemsSold, weekData.total.toFixed(2), totalAvgTx.toFixed(2)].join(','));
-
+            rows.push([''].join(','));
+            
+            // Category breakdown
+            rows.push(['Sales by Category'].join(','));
+            rows.push(['Category','Revenue','Percentage'].join(','));
+            const totalRevenue = weekData.total;
+            for (const [category, revenue] of Object.entries(weekData.categoryData)) {
+                const percentage = totalRevenue > 0 ? ((revenue / totalRevenue) * 100).toFixed(1) : 0;
+                rows.push([`"${category}"`, `$${revenue.toFixed(2)}`, `${percentage}%`].join(','));
+            }
+            rows.push([''].join(','));
+            
+            // Top products
+            rows.push(['Top Selling Products'].join(','));
+            rows.push(['Product','Units Sold','Revenue'].join(','));
+            if (weekData.topProducts && weekData.topProducts.length > 0) {
+                weekData.topProducts.forEach(product => {
+                    rows.push([`"${product.name}"`, product.sold, `$${product.revenue.toFixed(2)}`].join(','));
+                });
+            }
+            
             const csv = rows.join('\n');
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
@@ -2022,7 +2124,7 @@
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
-            showNotification('Report exported successfully!', 'success');
+            showNotification('Comprehensive report exported successfully!', 'success');
         }
 
         // Show notification
