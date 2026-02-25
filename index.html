@@ -232,6 +232,13 @@
             gap: 10px;
         }
 
+        .cart-item-total {
+            font-weight: bold;
+            color: #2a5298;
+            min-width: 80px;
+            text-align: right;
+        }
+
         .quantity-btn {
             background-color: #f0f0f0;
             border: none;
@@ -1267,7 +1274,7 @@
             const prevWeekStart = getPreviousWeekStart(currentWeekStart);
             const prevWeekData = salesData[prevWeekStart];
             
-            if (prevWeekData) {
+            if (prevWeekData && typeof prevWeekData.total === 'number' && prevWeekData.total > 0) {
                 const change = ((weekData.total - prevWeekData.total) / prevWeekData.total) * 100;
                 revenueChangeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
                 revenueChangeElement.className = `metric-change ${change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral'}`;
@@ -1297,7 +1304,10 @@
             totalTransactionsElement.textContent = weekData.transactions;
             itemsSoldElement.textContent = weekData.itemsSold;
             
-            const avgTransaction = weekData.total / weekData.transactions;
+            let avgTransaction = 0;
+            if (weekData.transactions && weekData.transactions > 0) {
+                avgTransaction = weekData.total / weekData.transactions;
+            }
             avgTransactionElement.textContent = `$${avgTransaction.toFixed(2)}`;
             
             // Update top product
@@ -1385,13 +1395,15 @@
             const totalRow = document.createElement('tr');
             totalRow.style.fontWeight = 'bold';
             totalRow.style.backgroundColor = '#f8f9fa';
+            // Safely compute average transaction for the total row
+            const totalAvgTransaction = (weekData.transactions && weekData.transactions > 0) ? (weekData.total / weekData.transactions) : 0;
             totalRow.innerHTML = `
                 <td>Total</td>
                 <td></td>
                 <td>${weekData.transactions}</td>
                 <td>${weekData.itemsSold}</td>
                 <td>$${weekData.total.toFixed(2)}</td>
-                <td>$${(weekData.total / weekData.transactions).toFixed(2)}</td>
+                <td>$${totalAvgTransaction.toFixed(2)}</td>
             `;
             dailySalesTable.appendChild(totalRow);
         }
