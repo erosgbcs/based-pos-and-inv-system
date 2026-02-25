@@ -1577,6 +1577,43 @@
             };
         }
 
+        // Filter week data by category
+        function filterWeekDataByCategory(weekData, category) {
+            const filtered = {
+                total: weekData.categoryData[category] || 0,
+                transactions: 0, // We'll need to estimate this
+                itemsSold: 0, // We'll need to estimate this
+                dailyData: {},
+                categoryData: { [category]: weekData.categoryData[category] || 0 },
+                topProducts: []
+            };
+            
+            // Filter daily data (this is approximate since we don't have per-day category breakdown)
+            const categoryPercentage = weekData.total > 0 ? (filtered.total / weekData.total) : 0;
+            for (const [date, dayData] of Object.entries(weekData.dailyData)) {
+                filtered.dailyData[date] = {
+                    revenue: dayData.revenue * categoryPercentage,
+                    transactions: Math.round(dayData.transactions * categoryPercentage),
+                    items: Math.round(dayData.items * categoryPercentage)
+                };
+            }
+            
+            // Update totals based on filtered daily data
+            filtered.total = Object.values(filtered.dailyData).reduce((sum, day) => sum + day.revenue, 0);
+            filtered.transactions = Object.values(filtered.dailyData).reduce((sum, day) => sum + day.transactions, 0);
+            filtered.itemsSold = Object.values(filtered.dailyData).reduce((sum, day) => sum + day.items, 0);
+            
+            // Filter top products by category
+            if (weekData.topProducts) {
+                filtered.topProducts = weekData.topProducts.filter(product => {
+                    const prod = products.find(p => p.id === product.id);
+                    return prod && prod.category === category;
+                });
+            }
+            
+            return filtered;
+        }
+
         // Get previous week start date
         function getPreviousWeekStart(dateStr) {
             const date = new Date(dateStr);
