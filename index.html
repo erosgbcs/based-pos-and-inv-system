@@ -718,7 +718,7 @@
                     <div id="weekly-report" class="tab-content">
                         <div class="section-title">
                             <div>
-                                <i class="fas fa-chart-line"></i>
+                                <i class="fas fa-chart-pie"></i>
                                 Weekly Sales Report
                             </div>
                             <div class="section-title-controls">
@@ -1789,7 +1789,7 @@
             ];
             
             categoryChart = new Chart(categoryCtx, {
-                type: 'doughnut',
+                type: 'pie',
                 data: {
                     labels: categoryLabels,
                     datasets: [{
