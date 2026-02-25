@@ -726,6 +726,17 @@
                                     <label for="weekStart">Week Starting:</label>
                                     <input type="date" id="weekStart" value="2023-10-23">
                                 </div>
+                                <div class="filter-selector">
+                                    <label for="categoryFilter">Category:</label>
+                                    <select id="categoryFilter">
+                                        <option value="all">All Categories</option>
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Furniture">Furniture</option>
+                                        <option value="Stationery">Stationery</option>
+                                        <option value="Home">Home</option>
+                                        <option value="Accessories">Accessories</option>
+                                    </select>
+                                </div>
                                 <button class="export-btn" id="exportReportBtn">
                                     <i class="fas fa-download"></i> Export Report
                                 </button>
@@ -1164,6 +1175,7 @@
 
         // Weekly report elements
         const weekStartInput = document.getElementById('weekStart');
+        const categoryFilter = document.getElementById('categoryFilter');
         const currentWeekRangeElement = document.getElementById('currentWeekRange');
         const prevWeekBtn = document.getElementById('prevWeekBtn');
         const nextWeekBtn = document.getElementById('nextWeekBtn');
@@ -1220,6 +1232,8 @@
                     currentWeekStart = weekStartInput.value;
                     updateWeeklyReport();
                 });
+                
+                categoryFilter.addEventListener('change', updateWeeklyReport);
                 
                 prevWeekBtn.addEventListener('click', goToPreviousWeek);
                 nextWeekBtn.addEventListener('click', goToNextWeek);
@@ -1456,7 +1470,13 @@
             updateWeekRangeDisplay();
             
             // Get data for current week
-            const weekData = salesData[currentWeekStart] || generateEmptyWeekData();
+            let weekData = salesData[currentWeekStart] || generateEmptyWeekData();
+            
+            // Apply category filter if selected
+            const selectedCategory = categoryFilter.value;
+            if (selectedCategory !== 'all') {
+                weekData = filterWeekDataByCategory(weekData, selectedCategory);
+            }
             
             // Update summary metrics
             weeklyRevenueTotalElement.textContent = `$${weekData.total.toFixed(2)}`;
