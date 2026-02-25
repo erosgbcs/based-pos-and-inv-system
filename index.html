@@ -135,15 +135,6 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         }
 
-        .product-image {
-            height: 140px;
-            background-color: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            color: #2a5298;
-        }
 
         .product-info {
             padding: 15px;
@@ -715,9 +706,6 @@
                             <input id="newPrice" type="number" step="0.01" placeholder="Price" style="width:120px; padding:8px; border:1px solid #ddd; border-radius:5px;">
                             <button class="btn btn-primary" id="addProductBtn">Add Product</button>
                             <button class="btn" id="exportInventoryBtn">Export CSV</button>
-                            <label style="display:inline-flex; align-items:center; gap:8px;">
-                                <input id="importInventoryFile" type="file" accept=".csv" style="display:inline-block;"> Import CSV
-                            </label>
                         </div>
                     </div>
 
@@ -960,37 +948,53 @@
 
         // Sample product data (added `code` field)
         let products = [
-            { id: 1, code: 'LP1001', name: "Laptop Pro", category: "Electronics", price: 999.99, stock: 15, image: "💻" },
-            { id: 2, code: 'WM2001', name: "Wireless Mouse", category: "Electronics", price: 29.99, stock: 42, image: "🖱️" },
-            { id: 3, code: 'MK3001', name: "Mechanical Keyboard", category: "Electronics", price: 89.99, stock: 23, image: "⌨️" },
-            { id: 4, code: 'OC4001', name: "Office Chair", category: "Furniture", price: 249.99, stock: 8, image: "🪑" },
-            { id: 5, code: 'DL5001', name: "Desk Lamp", category: "Furniture", price: 34.99, stock: 17, image: "💡" },
-            { id: 6, code: 'NS6001', name: "Notebook Set", category: "Stationery", price: 12.99, stock: 56, image: "📓" },
-            { id: 7, code: 'PS7001', name: "Pen Set", category: "Stationery", price: 8.99, stock: 0, image: "🖊️" },
-            { id: 8, code: 'CM8001', name: "Coffee Mug", category: "Home", price: 14.99, stock: 32, image: "☕" },
-            { id: 9, code: 'WB9001', name: "Water Bottle", category: "Home", price: 24.99, stock: 5, image: "💧" },
-            { id: 10, code: 'BP1002', name: "Backpack", category: "Accessories", price: 49.99, stock: 12, image: "🎒" },
-            { id: 11, code: 'PC1101', name: "Phone Case", category: "Accessories", price: 19.99, stock: 28, image: "📱" },
-            { id: 12, code: 'UC1201', name: "USB Cable", category: "Electronics", price: 9.99, stock: 64, image: "🔌" }
+            { id: 1, code: 'LP1001', name: "Laptop Pro", category: "Electronics", price: 999.99, stock: 15 },
+            { id: 2, code: 'WM2001', name: "Wireless Mouse", category: "Electronics", price: 29.99, stock: 42 },
+            { id: 3, code: 'MK3001', name: "Mechanical Keyboard", category: "Electronics", price: 89.99, stock: 23 },
+            { id: 4, code: 'OC4001', name: "Office Chair", category: "Furniture", price: 249.99, stock: 8 },
+            { id: 5, code: 'DL5001', name: "Desk Lamp", category: "Furniture", price: 34.99, stock: 17 },
+            { id: 6, code: 'NS6001', name: "Notebook Set", category: "Stationery", price: 12.99, stock: 56 },
+            { id: 7, code: 'PS7001', name: "Pen Set", category: "Stationery", price: 8.99, stock: 0 },
+            { id: 8, code: 'CM8001', name: "Coffee Mug", category: "Home", price: 14.99, stock: 32 },
+            { id: 9, code: 'WB9001', name: "Water Bottle", category: "Home", price: 24.99, stock: 5 },
+            { id: 10, code: 'BP1002', name: "Backpack", category: "Accessories", price: 49.99, stock: 12 },
+            { id: 11, code: 'PC1101', name: "Phone Case", category: "Accessories", price: 19.99, stock: 28 },
+            { id: 12, code: 'UC1201', name: "USB Cable", category: "Electronics", price: 9.99, stock: 64 }
         ];
 
-        // Helper: simple CSV parser (handles basic CSV without embedded newlines)
+        // Helper: simple CSV parser that handles quoted values and ignores extra columns
         function parseCSV(text) {
             const lines = text.trim().split(/\r?\n/).filter(l => l.trim() !== '');
             if (lines.length === 0) return [];
             const headers = lines[0].split(',').map(h => h.trim());
             const rows = [];
             for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',');
+                const line = lines[i];
+                const cols = [];
+                let current = '';
+                let inQuotes = false;
+                for (let k = 0; k < line.length; k++) {
+                    const char = line[k];
+                    if (char === '"') {
+                        if (inQuotes && k + 1 < line.length && line[k + 1] === '"') {
+                            // escaped quote
+                            current += '"';
+                            k++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        cols.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                cols.push(current);
+
                 const obj = {};
                 for (let j = 0; j < headers.length; j++) {
-                    const key = headers[j];
-                    let val = (cols[j] || '').trim();
-                    // Remove surrounding quotes if present
-                    if (val.startsWith('"') && val.endsWith('"')) {
-                        val = val.slice(1, -1);
-                    }
-                    obj[key] = val;
+                    obj[headers[j]] = (cols[j] || '').trim();
                 }
                 rows.push(obj);
             }
@@ -1016,8 +1020,7 @@
                             name: r.name || '',
                             category: r.category || 'Uncategorized',
                             price: parseFloat(r.price) || 0,
-                            stock: parseInt(r.stock, 10) || 0,
-                            image: r.image || '📦'
+                            stock: parseInt(r.stock, 10) || 0
                         }));
                     }
                 })
@@ -1029,10 +1032,10 @@
 
         // Export current products array as CSV and trigger download
         function exportProductsCSV() {
-            const headers = ['id','code','name','category','price','stock','image'];
+            const headers = ['id','code','name','category','price','stock'];
             const rows = products.map(p => {
                 // Escape quotes by doubling
-                const cols = [p.id, p.code, p.name, p.category, p.price, p.stock, p.image].map(v => {
+                const cols = [p.id, p.code, p.name, p.category, p.price, p.stock].map(v => {
                     const s = String(v === undefined || v === null ? '' : v);
                     if (s.includes(',') || s.includes('"')) {
                         return '"' + s.replace(/"/g, '""') + '"';
@@ -1054,38 +1057,6 @@
             showNotification('Inventory exported as CSV', 'success');
         }
 
-        // Import products from a selected CSV file (from file input)
-        function importProductsFromFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const text = e.target.result;
-                    const parsed = parseCSV(text);
-                    if (parsed && parsed.length) {
-                        products = parsed.map(r => ({
-                            id: Number(r.id) || (products.reduce((m,p)=>Math.max(m,p.id),0)+1),
-                            code: r.code || '',
-                            name: r.name || '',
-                            category: r.category || 'Uncategorized',
-                            price: parseFloat(r.price) || 0,
-                            stock: parseInt(r.stock, 10) || 0,
-                            image: r.image || '📦'
-                        }));
-                        // sync all to firestore
-                        products.forEach(syncProduct);
-                        renderProducts();
-                        renderInventoryTable();
-                        updateStats();
-                        showNotification('Inventory imported from CSV', 'success');
-                    } else {
-                        showNotification('No valid rows found in CSV', 'error');
-                    }
-                } catch (err) {
-                    showNotification('Failed to import CSV', 'error');
-                }
-            };
-            reader.readAsText(file);
-        }
 
         // Search term state
         let productSearchTerm = '';
@@ -1374,13 +1345,6 @@
             if (exportInventoryBtn) {
                 exportInventoryBtn.addEventListener('click', exportProductsCSV);
             }
-            const importInventoryFile = document.getElementById('importInventoryFile');
-            if (importInventoryFile) {
-                importInventoryFile.addEventListener('change', (e) => {
-                    const file = e.target.files && e.target.files[0];
-                    if (file) importProductsFromFile(file);
-                });
-            }
         }
 
         // Set default week start to the most recent Monday
@@ -1485,7 +1449,6 @@
                 }
                 
                 productCard.innerHTML = `
-                    <div class="product-image">${product.image}</div>
                     <div class="product-info">
                         <div class="product-name">${product.name} <span style="font-weight:400; color:#777; font-size:0.9rem; margin-left:6px;">(${product.code || ''})</span></div>
                         <div class="product-price">${formatMoney(product.price)}</div>
@@ -1533,7 +1496,7 @@
                 
                 row.innerHTML = `
                     <td>${product.code || ''}</td>
-                    <td>${product.image} ${product.name}</td>
+                    <td>${product.name}</td>
                     <td>${product.category}</td>
                     <td>${product.stock}</td>
                     <td>${formatMoney(product.price)}</td>
@@ -1867,8 +1830,7 @@
                 category,
                 price,
                 stock,
-                image: '📦'
-            };
+                };
 
             products.push(newProduct);
             // persist to firestore
@@ -2030,8 +1992,7 @@
                         id: product.id,
                         name: product.name,
                         price: product.price,
-                        quantity: 1,
-                        image: product.image
+                        quantity: 1
                     });
                     showNotification(`${product.name} added to cart`, 'success');
                 } else {
@@ -2073,7 +2034,7 @@
                 cartHTML += `
                     <div class="cart-item">
                         <div class="cart-item-info">
-                            <h4>${item.image} ${item.name}</h4>
+                            <h4>${item.name}</h4>
                             <div class="cart-item-price">${formatMoney(item.price)} each</div>
                         </div>
                         <div class="cart-item-quantity">

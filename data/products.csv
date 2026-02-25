@@ -1,13 +1,13 @@
-id,code,name,category,price,stock,image
-1,LP1001,Laptop Pro,Electronics,999.99,15,💻
-2,WM2001,Wireless Mouse,Electronics,29.99,42,🖱️
-3,MK3001,Mechanical Keyboard,Electronics,89.99,23,⌨️
-4,OC4001,Office Chair,Furniture,249.99,8,🪑
-5,DL5001,Desk Lamp,Furniture,34.99,17,💡
-6,NS6001,Notebook Set,Stationery,12.99,56,📓
-7,PS7001,Pen Set,Stationery,8.99,0,🖊️
-8,CM8001,Coffee Mug,Home,14.99,32,☕
-9,WB9001,Water Bottle,Home,24.99,5,💧
-10,BP1002,Backpack,Accessories,49.99,12,🎒
-11,PC1101,Phone Case,Accessories,19.99,28,📱
-12,UC1201,USB Cable,Electronics,9.99,64,🔌
+id,code,name,category,price,stock
+1,LP1001,Laptop Pro,Electronics,999.99,15
+2,WM2001,Wireless Mouse,Electronics,29.99,42
+3,MK3001,Mechanical Keyboard,Electronics,89.99,23
+4,OC4001,Office Chair,Furniture,249.99,8
+5,DL5001,Desk Lamp,Furniture,34.99,17
+6,NS6001,Notebook Set,Stationery,12.99,56
+7,PS7001,Pen Set,Stationery,8.99,0
+8,CM8001,Coffee Mug,Home,14.99,32
+9,WB9001,Water Bottle,Home,24.99,5
+10,BP1002,Backpack,Accessories,49.99,12
+11,PC1101,Phone Case,Accessories,19.99,28
+12,UC1201,USB Cable,Electronics,9.99,64
