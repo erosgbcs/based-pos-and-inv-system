@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS & Inventory Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -760,16 +760,11 @@
                             </div>
 
                             <div class="report-grid">
-                                <div class="report-card">
-                                    <div class="report-card-title">
-                                        <i class="fas fa-chart-pie"></i> Sales by Category
-                                    </div>
-                                    <canvas id="categoryChart" class="chart-container"></canvas>
-                                </div>
+
 
                                 <div class="report-card">
                                     <div class="report-card-title">
-                                        <i class="fas fa-dollar-sign"></i> Revenue Summary
+                                        <i class="fas fa-peso-sign"></i> Revenue Summary
                                     </div>
                                     <div class="metric-highlight" id="weeklyRevenueTotal">₱1,842.75</div>
                                     <div style="margin-bottom: 15px;">
@@ -1195,7 +1190,8 @@
         const recommendationsList = document.getElementById('recommendationsList');
 
         // Chart instances
-        let categoryChart = null;
+        // chart functionality removed
+        // let categoryChart = null;
 
         // Initialize the app
         function init() {
@@ -1513,9 +1509,9 @@
                 }
             }
             if (bestRevenue > 0 && bestDay) {
-                bestDayElement.textContent = `${bestDay} ($${bestRevenue.toFixed(2)})`;
+                bestDayElement.textContent = `${bestDay} (${formatMoney(bestRevenue)})`;
             } else {
-                bestDayElement.textContent = `N/A ($${bestRevenue.toFixed(2)})`;
+                bestDayElement.textContent = `N/A (${formatMoney(bestRevenue)})`;
             }
             
             // Update transaction metrics
@@ -1526,7 +1522,7 @@
             if (weekData.transactions && weekData.transactions > 0) {
                 avgTransaction = weekData.total / weekData.transactions;
             }
-            avgTransactionElement.textContent = `$${avgTransaction.toFixed(2)}`;
+            avgTransactionElement.textContent = formatMoney(avgTransaction);
             
             // Update top product
             if (weekData.topProducts && weekData.topProducts.length > 0) {
@@ -1541,7 +1537,6 @@
             updateInventoryInsights();
             
             // Update charts
-            updateCharts(weekData);
 
             // Restore previous scroll position to prevent auto-scroll
             window.scrollTo(prevScroll.x, prevScroll.y);
@@ -1642,8 +1637,8 @@
                     <td>${dateFormatted}</td>
                     <td>${dayData.transactions}</td>
                     <td>${dayData.items}</td>
-                    <td>$${dayData.revenue.toFixed(2)}</td>
-                    <td>$${avgTransaction.toFixed(2)}</td>
+                    <td>${formatMoney(dayData.revenue)}</td>
+                    <td>${formatMoney(avgTransaction)}</td>
                 `;
                 
                 dailySalesTable.appendChild(row);
@@ -1660,8 +1655,8 @@
                 <td></td>
                 <td>${weekData.transactions}</td>
                 <td>${weekData.itemsSold}</td>
-                <td>$${weekData.total.toFixed(2)}</td>
-                <td>$${totalAvgTransaction.toFixed(2)}</td>
+                <td>${formatMoney(weekData.total)}</td>
+                <td>${formatMoney(totalAvgTransaction)}</td>
             `;
             dailySalesTable.appendChild(totalRow);
         }
@@ -1689,7 +1684,7 @@
             if (weekData && weekData.topProducts && weekData.topProducts.length > 0) {
                 weekData.topProducts.forEach(product => {
                     const li = document.createElement('li');
-                    li.textContent = `${product.name}: ${product.sold} sold ($${product.revenue.toFixed(2)})`;
+                    li.textContent = `${product.name}: ${product.sold} sold (${formatMoney(product.revenue)})`;
                     topProductsList.appendChild(li);
                 });
             } else {
@@ -1773,48 +1768,10 @@
             updateStats();
         }
 
-        // Update charts
-        function updateCharts(weekData) {
-            // Destroy existing charts if they exist
-            if (categoryChart) {
-                categoryChart.destroy();
-            }
-            
-            // Category sales chart
-            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-            const categoryLabels = Object.keys(weekData.categoryData);
-            const categoryValues = Object.values(weekData.categoryData);
-            
-            // Generate colors for each category
-            const backgroundColors = [
-                'rgba(42, 82, 152, 0.7)',
-                'rgba(40, 167, 69, 0.7)',
-                'rgba(255, 193, 7, 0.7)',
-                'rgba(220, 53, 69, 0.7)',
-                'rgba(23, 162, 184, 0.7)'
-            ];
-            
-            categoryChart = new Chart(categoryCtx, {
-                type: 'pie',
-                data: {
-                    labels: categoryLabels,
-                    datasets: [{
-                        data: categoryValues,
-                        backgroundColor: backgroundColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        }
+        // Chart functionality removed
+        // function updateCharts(weekData) {
+        //     // charts were removed
+        // }
 
         // Add product to cart
         function addToCart(productId) {
@@ -1869,7 +1826,7 @@
                 
                 subtotalElement.textContent = formatMoney(0);
                 taxElement.textContent = formatMoney(0);
-                totalElement.textContent = '$0.00';
+                totalElement.textContent = formatMoney(0);
                 
                 return;
             }
@@ -2033,7 +1990,7 @@
             salesData[currentWeekStart] = weekData;
             
             // Show success message
-            showNotification(`Checkout successful! Total: $${total.toFixed(2)}`, 'success');
+            showNotification(`Checkout successful! Total: ${formatMoney(total)}`, 'success');
             
             // Clear cart
             cart = [];
