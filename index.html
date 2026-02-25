@@ -645,11 +645,11 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Today's Sales</div>
-                <div class="stat-value">₱<span id="todaySales">245.50</span></div>
+                <div class="stat-value">$<span id="todaySales">245.50</span></div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Weekly Revenue</div>
-                <div class="stat-value">₱<span id="weeklyRevenue">1,842.75</span></div>
+                <div class="stat-value">$<span id="weeklyRevenue">1,842.75</span></div>
             </div>
         </div>
 
@@ -769,16 +769,16 @@
 
                                 <div class="report-card">
                                     <div class="report-card-title">
-                                        <i class="fas fa-peso-sign"></i> Revenue Summary
+                                        <i class="fas fa-dollar-sign"></i> Revenue Summary
                                     </div>
-                                    <div class="metric-highlight" id="weeklyRevenueTotal">₱1,842.75</div>
+                                    <div class="metric-highlight" id="weeklyRevenueTotal">$1,842.75</div>
                                     <div style="margin-bottom: 15px;">
                                         <span>vs Previous Week: </span>
                                         <span class="metric-change positive" id="revenueChange">+12.5%</span>
                                     </div>
                                     <div>
                                         <span>Average Daily Sales: </span>
-                                        <span id="avgDailySales">₱263.25</span>
+                                        <span id="avgDailySales">$263.25</span>
                                     </div>
                                     <div>
                                         <span>Estimated Profit Margin: </span>
@@ -786,7 +786,7 @@
                                     </div>
                                     <div>
                                         <span>Best Day: </span>
-                                        <span id="bestDay">Tuesday (₱452.80)</span>
+                                        <span id="bestDay">Tuesday ($452.80)</span>
                                     </div>
                                 </div>
 
@@ -804,7 +804,7 @@
                                     </div>
                                     <div>
                                         <span>Average Transaction: </span>
-                                        <span id="avgTransaction">₱39.21</span>
+                                        <span id="avgTransaction">$39.21</span>
                                     </div>
                                     <div>
                                         <span>Top Product: </span>
@@ -880,15 +880,15 @@
                 <div class="cart-total">
                     <div class="total-row">
                         <span>Subtotal:</span>
-                        <span id="subtotal">₱0.00</span>
+                        <span id="subtotal">$0.00</span>
                     </div>
                     <div class="total-row">
                         <span>Tax (10%):</span>
-                        <span id="tax">₱0.00</span>
+                        <span id="tax">$0.00</span>
                     </div>
                     <div class="total-row total-amount">
                         <span>Total:</span>
-                        <span id="total">₱0.00</span>
+                        <span id="total">$0.00</span>
                     </div>
                     <button class="checkout-btn" id="checkoutBtn">
                         <i class="fas fa-credit-card"></i> Checkout
@@ -938,12 +938,6 @@
                 rows.push(obj);
             }
             return rows;
-        }
-
-        // currency helper
-        function formatPeso(amount) {
-            // simple PHP currency formatting with two decimals
-            return '₱' + amount.toFixed(2);
         }
 
         // Load products CSV from `data/products.csv` if available
