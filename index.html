@@ -645,11 +645,11 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Today's Sales</div>
-                <div class="stat-value">$<span id="todaySales">245.50</span></div>
+                <div class="stat-value">₱<span id="todaySales">245.50</span></div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Weekly Revenue</div>
-                <div class="stat-value">$<span id="weeklyRevenue">1,842.75</span></div>
+                <div class="stat-value">₱<span id="weeklyRevenue">1,842.75</span></div>
             </div>
         </div>
 
@@ -771,14 +771,14 @@
                                     <div class="report-card-title">
                                         <i class="fas fa-dollar-sign"></i> Revenue Summary
                                     </div>
-                                    <div class="metric-highlight" id="weeklyRevenueTotal">$1,842.75</div>
+                                    <div class="metric-highlight" id="weeklyRevenueTotal">₱1,842.75</div>
                                     <div style="margin-bottom: 15px;">
                                         <span>vs Previous Week: </span>
                                         <span class="metric-change positive" id="revenueChange">+12.5%</span>
                                     </div>
                                     <div>
                                         <span>Average Daily Sales: </span>
-                                        <span id="avgDailySales">$263.25</span>
+                                        <span id="avgDailySales">₱263.25</span>
                                     </div>
                                     <div>
                                         <span>Estimated Profit Margin: </span>
@@ -786,7 +786,7 @@
                                     </div>
                                     <div>
                                         <span>Best Day: </span>
-                                        <span id="bestDay">Tuesday ($452.80)</span>
+                                        <span id="bestDay">Tuesday (₱452.80)</span>
                                     </div>
                                 </div>
 
@@ -804,7 +804,7 @@
                                     </div>
                                     <div>
                                         <span>Average Transaction: </span>
-                                        <span id="avgTransaction">$39.21</span>
+                                        <span id="avgTransaction">₱39.21</span>
                                     </div>
                                     <div>
                                         <span>Top Product: </span>
@@ -880,15 +880,15 @@
                 <div class="cart-total">
                     <div class="total-row">
                         <span>Subtotal:</span>
-                        <span id="subtotal">$0.00</span>
+                        <span id="subtotal">₱0.00</span>
                     </div>
                     <div class="total-row">
                         <span>Tax (10%):</span>
-                        <span id="tax">$0.00</span>
+                        <span id="tax">₱0.00</span>
                     </div>
                     <div class="total-row total-amount">
                         <span>Total:</span>
-                        <span id="total">$0.00</span>
+                        <span id="total">₱0.00</span>
                     </div>
                     <button class="checkout-btn" id="checkoutBtn">
                         <i class="fas fa-credit-card"></i> Checkout
@@ -901,6 +901,12 @@
     <div id="notification" class="notification"></div>
 
     <script>
+        // currency configuration
+        const currencySymbol = '₱';
+        function formatMoney(amount) {
+            return currencySymbol + Number(amount).toFixed(2);
+        }
+
         // Sample product data (added `code` field)
         let products = [
             { id: 1, code: 'LP1001', name: "Laptop Pro", category: "Electronics", price: 999.99, stock: 15, image: "💻" },
@@ -1374,7 +1380,7 @@
                     <div class="product-image">${product.image}</div>
                     <div class="product-info">
                         <div class="product-name">${product.name} <span style="font-weight:400; color:#777; font-size:0.9rem; margin-left:6px;">(${product.code || ''})</span></div>
-                        <div class="product-price">$${product.price.toFixed(2)}</div>
+                        <div class="product-price">${formatMoney(product.price)}</div>
                         <div class="product-stock ${stockClass}">${stockStatus}</div>
                         <button class="add-to-cart" data-id="${product.id}" ${product.stock === 0 ? 'disabled' : ''}>
                             ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
@@ -1422,7 +1428,7 @@
                     <td>${product.image} ${product.name}</td>
                     <td>${product.category}</td>
                     <td>${product.stock}</td>
-                    <td>$${product.price.toFixed(2)}</td>
+                    <td>${formatMoney(product.price)}</td>
                     <td>${statusBadge}</td>
                     <td>
                         <button class="quantity-btn" onclick="adjustInventory(${product.id}, 'increase')">+</button>
@@ -1471,7 +1477,7 @@
             }
             
             // Update summary metrics
-            weeklyRevenueTotalElement.textContent = `$${weekData.total.toFixed(2)}`;
+            weeklyRevenueTotalElement.textContent = formatMoney(weekData.total);
             weeklyRevenueElement.textContent = weekData.total.toFixed(2);
             
             // Calculate revenue change vs previous week
@@ -1489,11 +1495,11 @@
             
             // Calculate average daily sales
             const avgDaily = weekData.total / 7;
-            avgDailySalesElement.textContent = `$${avgDaily.toFixed(2)}`;
+            avgDailySalesElement.textContent = formatMoney(avgDaily);
             
             // Calculate estimated profit margin (assuming 30% margin)
             const estimatedProfit = weekData.total * 0.3;
-            profitMarginElement.textContent = `$${estimatedProfit.toFixed(2)} (30%)`;
+            profitMarginElement.textContent = formatMoney(estimatedProfit) + ' (30%)';
             
             // Find best day
             let bestDay = "";
@@ -1861,8 +1867,8 @@
                     </div>
                 `;
                 
-                subtotalElement.textContent = '$0.00';
-                taxElement.textContent = '$0.00';
+                subtotalElement.textContent = formatMoney(0);
+                taxElement.textContent = formatMoney(0);
                 totalElement.textContent = '$0.00';
                 
                 return;
@@ -1880,7 +1886,7 @@
                     <div class="cart-item">
                         <div class="cart-item-info">
                             <h4>${item.image} ${item.name}</h4>
-                            <div class="cart-item-price">$${item.price.toFixed(2)} each</div>
+                            <div class="cart-item-price">${formatMoney(item.price)} each</div>
                         </div>
                         <div class="cart-item-quantity">
                             <button class="quantity-btn" onclick="updateQuantity(${item.id}, -1)">-</button>
@@ -1888,7 +1894,7 @@
                             <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)">+</button>
                         </div>
                         <div class="cart-item-total">
-                            $${itemTotal.toFixed(2)}
+                            ${formatMoney(itemTotal)}
                         </div>
                     </div>
                 `;
@@ -1900,9 +1906,9 @@
             const tax = subtotal * 0.10;
             const total = subtotal + tax;
             
-            subtotalElement.textContent = `$${subtotal.toFixed(2)}`;
-            taxElement.textContent = `$${tax.toFixed(2)}`;
-            totalElement.textContent = `$${total.toFixed(2)}`;
+            subtotalElement.textContent = formatMoney(subtotal);
+            taxElement.textContent = formatMoney(tax);
+            totalElement.textContent = formatMoney(total);
         }
 
         // Update item quantity in cart
@@ -2069,11 +2075,11 @@
             
             // Summary metrics
             rows.push(['Summary Metrics'].join(','));
-            rows.push(['Total Revenue', `$${weekData.total.toFixed(2)}`].join(','));
+            rows.push(['Total Revenue', formatMoney(weekData.total)].join(','));
             rows.push(['Total Transactions', weekData.transactions].join(','));
             rows.push(['Total Items Sold', weekData.itemsSold].join(','));
-            rows.push(['Average Transaction', `$${(weekData.transactions > 0 ? weekData.total / weekData.transactions : 0).toFixed(2)}`].join(','));
-            rows.push(['Average Daily Sales', `$${(weekData.total / 7).toFixed(2)}`].join(','));
+            rows.push(['Average Transaction', formatMoney(weekData.transactions > 0 ? weekData.total / weekData.transactions : 0)].join(','));
+            rows.push(['Average Daily Sales', formatMoney(weekData.total / 7)].join(','));
             rows.push([''].join(','));
             
             // Daily breakdown
@@ -2086,7 +2092,7 @@
                 const dayName = date.toLocaleDateString(undefined, { weekday: 'long' });
                 const dayData = weekData.dailyData[dateStr] || { revenue: 0, transactions: 0, items: 0 };
                 const avgTx = dayData.transactions > 0 ? (dayData.revenue / dayData.transactions) : 0;
-                rows.push([`"${dayName}"`, dateStr, dayData.transactions, dayData.items, `$${dayData.revenue.toFixed(2)}`, `$${avgTx.toFixed(2)}`].join(','));
+                rows.push([`"${dayName}"`, dateStr, dayData.transactions, dayData.items, formatMoney(dayData.revenue), formatMoney(avgTx)].join(','));
             }
             rows.push([''].join(','));
             
@@ -2096,7 +2102,7 @@
             const totalRevenue = weekData.total;
             for (const [category, revenue] of Object.entries(weekData.categoryData)) {
                 const percentage = totalRevenue > 0 ? ((revenue / totalRevenue) * 100).toFixed(1) : 0;
-                rows.push([`"${category}"`, `$${revenue.toFixed(2)}`, `${percentage}%`].join(','));
+                rows.push([`"${category}"`, formatMoney(revenue), `${percentage}%`].join(','));
             }
             rows.push([''].join(','));
             
@@ -2105,7 +2111,7 @@
             rows.push(['Product','Units Sold','Revenue'].join(','));
             if (weekData.topProducts && weekData.topProducts.length > 0) {
                 weekData.topProducts.forEach(product => {
-                    rows.push([`"${product.name}"`, product.sold, `$${product.revenue.toFixed(2)}`].join(','));
+                    rows.push([`"${product.name}"`, product.sold, formatMoney(product.revenue)].join(','));
                 });
             }
             
