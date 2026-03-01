@@ -2329,6 +2329,28 @@
 
         // Initialize the app when the page loads
         document.addEventListener('DOMContentLoaded', init);
+
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBMt2AwW3cq8Og1gqV3MfPaUGearhnAWcU",
+  authDomain: "basedpos-inventory.firebaseapp.com",
+  projectId: "basedpos-inventory",
+  storageBucket: "basedpos-inventory.firebasestorage.app",
+  messagingSenderId: "563342767045",
+  appId: "1:563342767045:web:b4b4d839bfbe6fe94911ac",
+  measurementId: "G-FPG96DEDQS"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
     </script>
 </body>
 </html>
